@@ -1,0 +1,297 @@
+import {
+  McpServer,
+  ResourceTemplate,
+} from '@modelcontextprotocol/sdk/server/mcp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import fetch from 'node-fetch';
+import { z } from 'zod';
+import { repoContentSchema, repoListSchema } from './types.js';
+
+// GitHub API constants
+const GITHUB_API = 'https://api.github.com';
+
+class GitHubMcpServer {
+  private server: McpServer;
+  private token: string;
+  private username: string;
+
+  constructor(token: string, username: string) {
+    this.token = token;
+    this.username = username;
+
+    // Create server instance
+    this.server = new McpServer({
+      name: 'GitHub MCP',
+      version: '1.0.0',
+    });
+
+    this.registerResources();
+    this.registerTools();
+  }
+
+  // Helper method for GitHub API requests
+  private async githubRequest(path: string) {
+    const response = await fetch(`${GITHUB_API}${path}`, {
+      headers: {
+        Authorization: `token ${this.token}`,
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': 'GitHub-MCP',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `GitHub API error: ${response.status} ${await response.text()}`
+      );
+    }
+
+    return response.json();
+  }
+
+  private registerResources() {
+    // List repositories resource
+    this.server.resource(
+      'repos',
+      new ResourceTemplate('github://repos', { list: undefined }),
+      async (uri) => {
+        const repos = await this.githubRequest(`/user/repos?per_page=100`);
+
+        return {
+          contents: [
+            {
+              uri: uri.href,
+              text:
+                `# Repositories for ${this.username}\n\n` +
+                repos
+                  .map(
+                    (repo: any) =>
+                      `- [${repo.name}](${repo.html_url}): ${
+                        repo.description || 'No description'
+                      }`
+                  )
+                  .join('\n'),
+            },
+          ],
+        };
+      }
+    );
+
+    // Get repository content resource
+    this.server.resource(
+      'repo-content',
+      new ResourceTemplate('github://repos/{repo}/{path*}', {
+        list: undefined,
+      }),
+      async (uri, { repo, path }) => {
+        // If path is undefined, get repository info
+        if (!path) {
+          const repoInfo = await this.githubRequest(
+            `/repos/${this.username}/${repo}`
+          );
+
+          return {
+            contents: [
+              {
+                uri: uri.href,
+                text:
+                  `# ${repoInfo.name}\n\n${
+                    repoInfo.description || 'No description'
+                  }\n\n` +
+                  `- Stars: ${repoInfo.stargazers_count}\n` +
+                  `- Forks: ${repoInfo.forks_count}\n` +
+                  `- Last updated: ${new Date(
+                    repoInfo.updated_at
+                  ).toLocaleDateString()}\n\n` +
+                  `Use \`github://repos/${repo}/file-path\` to access specific files.`,
+              },
+            ],
+          };
+        }
+
+        // Get file content
+        try {
+          const contentResponse = await this.githubRequest(
+            `/repos/${this.username}/${repo}/contents/${path}`
+          );
+
+          // Handle directory vs file
+          if (Array.isArray(contentResponse)) {
+            // It's a directory
+            const listing = contentResponse
+              .map(
+                (item: any) =>
+                  `- [${item.name}](github://repos/${repo}/${path}/${item.name}) (${item.type})`
+              )
+              .join('\n');
+
+            return {
+              contents: [
+                {
+                  uri: uri.href,
+                  text: `# Directory: ${path || ''}\n\n${listing}`,
+                },
+              ],
+            };
+          } else {
+            // It's a file
+            let content: string;
+
+            if (contentResponse.encoding === 'base64') {
+              content = Buffer.from(contentResponse.content, 'base64').toString(
+                'utf-8'
+              );
+            } else {
+              content = contentResponse.content;
+            }
+
+            return {
+              contents: [
+                {
+                  uri: uri.href,
+                  text: content,
+                },
+              ],
+            };
+          }
+        } catch (error) {
+          return {
+            contents: [
+              {
+                uri: uri.href,
+                text: `Error retrieving content: ${(error as Error).message}`,
+              },
+            ],
+          };
+        }
+      }
+    );
+  }
+
+  private registerTools() {
+    // Search repositories tool
+    this.server.tool(
+      'search-repos',
+      { query: z.string() },
+      async ({ query }) => {
+        try {
+          const results = await this.githubRequest(
+            `/search/repositories?q=${encodeURIComponent(query)}+user:${
+              this.username
+            }`
+          );
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text:
+                  results.items.length > 0
+                    ? `Found ${results.items.length} repositories:\n\n` +
+                      results.items
+                        .map(
+                          (repo: any) =>
+                            `- [${repo.name}](${repo.html_url}): ${
+                              repo.description || 'No description'
+                            }`
+                        )
+                        .join('\n')
+                    : `No repositories found matching "${query}"`,
+              },
+            ],
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error searching repositories: ${
+                  (error as Error).message
+                }`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    );
+
+    // Search code tool
+    this.server.tool(
+      'search-code',
+      {
+        query: z.string(),
+        repo: z.string().optional(),
+      },
+      async ({ query, repo }) => {
+        try {
+          let searchQuery = `${encodeURIComponent(query)}+user:${
+            this.username
+          }`;
+          if (repo) {
+            searchQuery += `+repo:${this.username}/${repo}`;
+          }
+
+          const results = await this.githubRequest(
+            `/search/code?q=${searchQuery}`
+          );
+
+          return {
+            content: [
+              {
+                type: 'text',
+                text:
+                  results.items.length > 0
+                    ? `Found ${results.items.length} code results:\n\n` +
+                      results.items
+                        .map(
+                          (item: any) =>
+                            `- [${item.path}](github://repos/${item.repository.name}/${item.path}) in ${item.repository.name}`
+                        )
+                        .join('\n')
+                    : `No code found matching "${query}"`,
+              },
+            ],
+          };
+        } catch (error) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: `Error searching code: ${(error as Error).message}`,
+              },
+            ],
+            isError: true,
+          };
+        }
+      }
+    );
+  }
+
+  async start() {
+    // Start the server using stdio transport
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
+  }
+}
+
+// Main function to start the server
+async function main() {
+  // Get GitHub token from environment
+  const token = process.env.GITHUB_TOKEN;
+  const username = process.env.GITHUB_USERNAME;
+
+  if (!token || !username) {
+    console.error(
+      'Error: GITHUB_TOKEN and GITHUB_USERNAME environment variables must be set'
+    );
+    process.exit(1);
+  }
+
+  const server = new GitHubMcpServer(token, username);
+  await server.start();
+}
+
+main().catch((err) => {
+  console.error('Fatal error:', err);
+  process.exit(1);
+});

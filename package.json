@@ -1,0 +1,52 @@
+{
+  "name": "custommcpai-modelcontextprotocol-githubapi-ts",
+  "version": "0.1.0",
+  "description": "Proyecto inicial utilizando el Protocolo de Contexto de Modelo (MCP) para conectar IA con la API de GitHub mediante TypeScript, con el objetivo de exponer datos de repositorios de forma estandarizada para modelos de lenguaje (LLMs).",
+  "main": "dist/github-mcp-server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node github-mcp-server.js",
+    "dev": "tsc && node dist/index.js",
+    "test": "tsc && node dist/test-client.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArlandMv/CustomMcpAI-ModelContextProtocol-GithubApi-TS.git"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "github-api",
+    "typescript",
+    "large-language-models",
+    "llm",
+    "open-protocol",
+    "Context-Standardization",
+    "octokit",
+    "node.js",
+    "server",
+    "resource-Exposure",
+    "ai-integration"
+  ],
+  "author": "Arland Michelena Villegas",
+  "license": "MIT",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/ArlandMv/CustomMcpAI-ModelContextProtocol-GithubApi-TS/issues"
+  },
+  "homepage": "https://github.com/ArlandMv/CustomMcpAI-ModelContextProtocol-GithubApi-TS#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.7.0",
+    "dotenv": "^16.4.7",
+    "node-fetch": "^3.3.2",
+    "octokit": "^4.1.2",
+    "zod": "^3.24.2",
+    "zod-to-json-schema": "^3.24.4"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/node-fetch": "^2.6.12",
+    "typescript": "^5.8.2"
+  }
+}
