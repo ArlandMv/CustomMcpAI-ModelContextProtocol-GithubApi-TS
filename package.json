@@ -2,12 +2,20 @@
   "name": "custommcpai-modelcontextprotocol-githubapi-ts",
   "version": "0.1.0",
   "description": "Proyecto inicial utilizando el Protocolo de Contexto de Modelo (MCP) para conectar IA con la API de GitHub mediante TypeScript, con el objetivo de exponer datos de repositorios de forma estandarizada para modelos de lenguaje (LLMs).",
-  "main": "dist/github-mcp-server.js",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "repos": "./build/index.js"
+  },
+  "files": [
+    "build"
+  ],
   "scripts": {
     "build": "tsc",
-    "start": "node github-mcp-server.js",
-    "dev": "tsc && node dist/index.js",
-    "test": "tsc && node dist/test-client.js"
+    "build2": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "start": "node index.js",
+    "watch": "tsc --watch",
+    "dev": "tsc && node dist/index.js"
   },
   "repository": {
     "type": "git",
@@ -31,7 +39,6 @@
   ],
   "author": "Arland Michelena Villegas",
   "license": "MIT",
-  "type": "module",
   "bugs": {
     "url": "https://github.com/ArlandMv/CustomMcpAI-ModelContextProtocol-GithubApi-TS/issues"
   },

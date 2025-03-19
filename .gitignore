@@ -1,11 +1,11 @@
-# Node.js dependencies
-node_modules/
-
-# Build output
-dist/
-
-# Environment variables
+build
+dist
+node_modules
 .env
+
+# Others
+.vscode
+assets/
 
 # TypeScript cache
 *.tsbuildinfo
@@ -18,3 +18,4 @@ yarn-error.log*
 # System files
 .DS_Store
 Thumbs.db
+

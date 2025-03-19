@@ -84,3 +84,39 @@ export const CodeSearchResponseSchema = z.object({
   incomplete_results: z.boolean(),
   items: z.array(CodeSearchItemSchema),
 });
+
+export const SearchRepositoriesSchema = z.object({
+  query: z.string().describe("Search query (see GitHub search syntax)"),
+  page: z.number().optional().describe("Page number for pagination (default: 1)"),
+  perPage: z.number().optional().describe("Number of results per page (default: 30, max: 100)"),
+});
+
+//--- others
+const listUserReposSchema = {
+  type: "object",
+  properties: {
+    username: { type: "string", description: "GitHub username" },
+    page: { type: "number", description: "Page number (default: 1)" },
+    perPage: { type: "number", description: "Repositories per page (default: 30)" },
+  },
+  required: ["username"],
+};
+
+const searchReposSchema = {
+  type: "object",
+  properties: {
+    query: { type: "string", description: "Search query" },
+    page: { type: "number", description: "Page number (default: 1)" },
+    perPage: { type: "number", description: "Repositories per page (default: 30)" },
+  },
+  required: ["query"],
+};
+
+const getRepoDetailsSchema = {
+  type: "object",
+  properties: {
+    owner: { type: "string", description: "Repository owner (username)" },
+    repo: { type: "string", description: "Repository name" },
+  },
+  required: ["owner", "repo"],
+};
