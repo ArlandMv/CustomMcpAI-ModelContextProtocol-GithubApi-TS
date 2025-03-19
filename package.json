@@ -11,11 +11,10 @@
     "build"
   ],
   "scripts": {
-    "build": "tsc",
-    "build2": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
     "start": "node index.js",
     "watch": "tsc --watch",
-    "dev": "tsc && node dist/index.js"
+    "dev": "tsc && node build/index.js"
   },
   "repository": {
     "type": "git",

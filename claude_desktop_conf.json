@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "weather": {
+      "command": "node",
+      "args": [
+        "absolutePathToParentFolder/CustomMcpAI-ModelContextProtocol-GithubApi-TS/build/index.js"
+      ]
+    }
+  }
+}
